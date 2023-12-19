@@ -15,7 +15,6 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
-
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -25,6 +24,16 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3.3.2
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
     
     - name: make application.yml
       run: |
