@@ -20,6 +20,8 @@ jobs:
       uses: actions/checkout@v3
       with:
         submodules: true
+        ssh-key: ${{ secrets.SSH_KEY }}  # GitHub Secrets에서 저장된 SSH 키 사용
+
         
     - name: Set up JDK 17
       uses: actions/setup-java@v3
