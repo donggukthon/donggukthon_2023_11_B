@@ -50,6 +50,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String accessToken = jwtUtil.createAccessToken(user.getUserClientId());
         String refreshToken = jwtUtil.createRefreshToken();
 
+        log.info("user => accessToken = {}", accessToken);
+        /*
+        *TODO 테스트 데이터 지우기
+        */
+        String testAccessToken = jwtUtil.createAccessToken("testClientId");
+
+
         jwtUtil.updateRefreshToken(user, refreshToken);
 
         Cookie accessCookie = new Cookie("accessCookie", accessToken);
@@ -64,6 +71,11 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         response.addCookie(accessCookie);
         response.addCookie(refreshCookie);
 
-        response.sendRedirect("http://localhost:3000/mypage");
+        if (user.getRole().equals("GUEST")) {
+            response.sendRedirect("http://localhost:3000/signin");
+        } else {
+            response.sendRedirect("http://localhost:3000/mypage");
+        }
+
     }
 }
