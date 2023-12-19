@@ -67,7 +67,7 @@ public class StampService {
 
     //3-5. 우표 만들기(만들기 버튼을 누르고 파일이 넘어올 떄)
     @Transactional
-    public void makeNewStamp(User tmpUser, StampNewDto stampNewDto) throws IOException {
+    public StampIdDto makeNewStamp(User tmpUser, StampNewDto stampNewDto) throws IOException {
 
         User user = userRepository.findByUserClientId(tmpUser.getUserClientId())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
@@ -81,6 +81,7 @@ public class StampService {
                 .createdAt(LocalDateTime.now())
                 .build();
         stampRepository.save(stamp);
+        stampRepository.flush();
 
         UserStamp userStamp = UserStamp.builder()
                 .user(user)
@@ -94,19 +95,28 @@ public class StampService {
                 .build());
 
         canvasRepository.findByRoomMaker(user).ifPresent(canvas -> {
+            for (User canvasUser : canvas.getUserList()) {
+                canvasUser.updateCanvas(null);
+                userRepository.save(canvasUser);
+            }
+            userRepository.flush();
             canvasRepository.delete(canvas);
             pixelRepository.deleteAllByCanvasClientId(canvas.getCanvasClientId());
         });
+
+        return StampIdDto.builder()
+                .stampId(stamp.getStampClientId())
+                .build();
     }
 
 
     //3-6. 우표 이름, 사진 요청
     @Transactional(readOnly = true)
-    public StampNameDto showStampName(String stampClientId) {
+    public StampNewInfoDto showNewStampInfo(String stampClientId) {
         Stamp stamp = stampRepository.findByStampClientId(stampClientId)
                 .orElseThrow(() -> new CustomException(ErrorCode.STAMP_NOT_FOUND));
 
-        return StampNameDto.builder()
+        return StampNewInfoDto.builder()
                 .stampName(stamp.getStampName())
                 .stampImg(stamp.getStampImgUrl())
                 .build();
@@ -169,29 +179,33 @@ public class StampService {
 
     //4-3. 우표 좋아요 누르기
     @Transactional
-    public void putStampLike(User user, String stampClientId, LikeDto likeDto) {
+    public void putStampLike(User tmpUser, String stampClientId, LikeDto likeDto) {
         Stamp stamp = stampRepository.findByStampClientId(stampClientId)
                 .orElseThrow(() -> new CustomException(ErrorCode.STAMP_NOT_FOUND));
+
+        User user = userRepository.findByUserClientId(tmpUser.getUserClientId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         Optional<LikeStamp> likeStampOptional = likeStampRepository.findByUserAndStamp(user, stamp);
 
         if (likeDto.like()) { //유저가 좋아요를 취소함
-            if (likeStampOptional.isEmpty()) {
-                throw new CustomException(ErrorCode.LIKED_ERROR);
-            }
-            likeStampRepository.delete(likeStampOptional.get());
-
-        } else { //유저가 좋아요를 누름
             if (likeStampOptional.isPresent()) {
                 likeStampRepository.delete(likeStampOptional.get());
                 throw new CustomException(ErrorCode.LIKED_ERROR);
             }
+
             LikeStamp likeStamp = LikeStamp.builder()
                     .user(user)
                     .stamp(stamp)
                     .createdAt(LocalDateTime.now())
                     .build();
             likeStampRepository.save(likeStamp);
+
+        } else { //유저가 좋아요를 누름
+            if (likeStampOptional.isEmpty()) {
+                throw new CustomException(ErrorCode.LIKED_ERROR);
+            }
+            likeStampRepository.delete(likeStampOptional.get());
         }
     }
 

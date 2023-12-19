@@ -41,16 +41,15 @@ public class StampController {
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @ModelAttribute StampNewDto stampNewDto
     ) throws IOException {
-        stampService.makeNewStamp(principalDetails.getUser(), stampNewDto);
-        return ResponseDto.ok(null);
+        return ResponseDto.ok(stampService.makeNewStamp(principalDetails.getUser(), stampNewDto));
     }
 
     //3-6. 우표 이름, 사진 요청
     @GetMapping("/{stampClientId}/stamp-info")
-    public ResponseDto<?> showStampName(
+    public ResponseDto<?> showNewStampInfo(
             @PathVariable String stampClientId
     ) {
-        return ResponseDto.ok(stampService.showStampName(stampClientId));
+        return ResponseDto.ok(stampService.showNewStampInfo(stampClientId));
     }
 
     //4. 씰 만들기(필터링: 좋아요 한 우표)
