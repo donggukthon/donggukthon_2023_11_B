@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.JSONValue;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -23,24 +24,24 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
-
         ResponseDto responseDto;
 
-        // TokenExpiredException 처리
-        // SignatureVerificationException 처리
         if (authException.getCause() instanceof TokenExpiredException || authException.getCause() instanceof SignatureVerificationException) {
-            responseDto = new ResponseDto(HttpStatus.BAD_REQUEST,"FALSE", null, ErrorCode.INVALID_TOKEN.getMessage());
+            responseDto = new ResponseDto(HttpStatus.BAD_REQUEST, "FAIL", null, ErrorCode.INVALID_TOKEN.getMessage());
         }
-
+        // 헤더에 토큰이 없는 경우 처리
+        else if (authException instanceof BadCredentialsException && authException.getCause() == null) {
+            responseDto = new ResponseDto(HttpStatus.UNAUTHORIZED, "FAIL", null, ErrorCode.UNAUTHORIZED_USER.getMessage());
+        }
         // UsernameNotFoundException 처리
         else if (authException.getCause() instanceof UsernameNotFoundException) {
-            responseDto = new ResponseDto(HttpStatus.BAD_REQUEST,"FALSE", null, ErrorCode.USER_NOT_FOUND.getMessage());
+            responseDto = new ResponseDto(HttpStatus.BAD_REQUEST, "FAIL", null, ErrorCode.USER_NOT_FOUND.getMessage());
         }
         // 기타 예외 처리
         else {
             ErrorCode errorCode = request.getAttribute("exception") == null ?
                     ErrorCode.NOT_FOUND_END_POINT : (ErrorCode) request.getAttribute("exception");
-            responseDto = new ResponseDto(HttpStatus.BAD_REQUEST, "FALSE", null, errorCode.getMessage());
+            responseDto = new ResponseDto(HttpStatus.BAD_REQUEST, "FAIL", null, errorCode.getMessage());
         }
 
         response.setContentType("application/json");
